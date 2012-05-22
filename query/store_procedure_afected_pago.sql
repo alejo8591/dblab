@@ -112,11 +112,16 @@ BEGIN
     -- Variable para contar las facturas del cliente
     DECLARE numPago INT;
     -- Consulta para verificar la cantidad de facturas que tiene el cliente
-    SELECT COUNT(idPago) INTO numPago FROM pagos WHERE clientes_cedula = cedula;
+    SELECT COUNT(idPago) INTO numPago FROM pagos INNER JOIN 
+    facturas ON pagos.facturas_noFactura  = facturas.noFactura WHERE clientes_cedula = cedula;
     -- Verificando si el cliente tiene facturas
-    IF numFactura > 0 THEN
-     SELECT facturas.noFactura AS Factura, saldofactura.vrSaldo AS 'Saldo Factura', facturas.fechaVencimiento AS 'Fecha Vencimiento', facturas.clientes_cedula AS 'Cedula Cliente' FROM facturas INNER JOIN saldofactura ON facturas.noFactura = saldofactura.idFactura WHERE saldofactura.vrSaldo >0 AND facturas.clientes_cedula = cedula GROUP BY facturas.fechaVencimiento ASC;
+    IF numPago > 0 THEN
+        SELECT pagos.idPago AS 'Numero del Pago', facturas.noFactura AS 'Numero Factura', pagos.vrPagado AS 'Valor Pagado', 
+        pagos.fechaPago AS 'Fecha del Pago', pagos.estados_idEstado AS 'Estado'
+        FROM pagos INNER JOIN facturas ON facturas.noFactura = pagos.facturas_noFactura 
+        WHERE facturas.clientes_cedula = cedula;
     ELSE 
-        SELECT * FROM facturas WHERE clientes_cedula = cedula;
+        SELECT * FROM pagos INNER JOIN facturas ON pagos.facturas_noFactura  = facturas.noFactura 
+        WHERE facturas.clientes_cedula = cedula;
     END IF;
 END //
