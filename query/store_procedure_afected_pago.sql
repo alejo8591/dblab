@@ -1,4 +1,8 @@
+-- --------------------------------------------------------------------------------
+-- Procedimientos Group Routines
+-- --------------------------------------------------------------------------------
 DELIMITER $$
+
 -- Creando funcion puesto que los procedimientos y las funciones trabajan 
 -- parecido la diferencia es que las funciones devuelven datos y los procedimientos no
 CREATE FUNCTION `proyectofinal`.`usp_Pago_Factura` (factura INT ,pago DECIMAL(40,2)) RETURNS INT
@@ -31,4 +35,88 @@ BEGIN
          END IF;
     END IF;
 END $$
-DELIMITER $$
+
+-- ------------------------------------------------------------------------------------------------
+-- --------------------------Anular un pago-----------------------------------
+-- ------------------------------------------------------------------------------------------------
+-- Creando funcion puesto que los procedimientos y las funciones trabajan 
+-- parecido la diferencia es que las funciones devuelven datos y los procedimientos no
+DELIMITER //
+CREATE FUNCTION `proyectofinal`.`usp_Anula_Pago` (id INT) RETURNS INT
+BEGIN
+    -- declarando variables para los resultados de la consulta
+    DECLARE resultado INT;
+    DECLARE factura INT;
+    DECLARE valor DECIMAL(40,2);
+    
+    -- Consulta para saber y comparar si el pago realmente existe si existe pone en 1
+    -- si no existe deja el valor en 0
+		SELECT COUNT(idPago), facturas_noFactura INTO resultado, factura FROM pagos WHERE idPago = id;
+    -- trayendo el valor pagado a la correspondiente factura
+    SELECT vrPagado INTO valor FROM pagos WHERE idPago = id AND facturas_noFactura = factura;
+
+    -- verificando si el pago fue creada   
+    IF resultado = 0 THEN
+        -- retorna 0 como se indica si el pago no existe
+       RETURN resultado;
+    -- Si el `idPago` del pago esta presente entonces realiza la siguiente accion
+    ELSE 
+       IF valor > 0 THEN
+           UPDATE saldofactura SET vrSaldo = (valor + vrSaldo) WHERE idFactura = factura;
+           UPDATE pagos SET idReversa = id, vrPagado = (-valor), fechaPago= NOW() WHERE idPago = id AND facturas_noFactura = factura;
+           RETURN resultado;
+       ELSE
+         RETURN -1;
+       END IF;
+    END IF;
+END //
+
+-- ------------------------------------------------------------------------------------------------
+-- --------------------------Lista de Factura de un Cliente-----------------------------------
+-- ------------------------------------------------------------------------------------------------
+-- Creando funcion puesto que los procedimientos y las funciones trabajan 
+-- parecido la diferencia es que las funciones devuelven datos y los procedimientos no
+
+
+DELIMITER $
+
+CREATE PROCEDURE `proyectofinal`.`usp_Lista_Facturas` (cedula INT)
+BEGIN
+    -- Variable para contar las facturas del cliente
+    DECLARE numFactura INT;
+    -- Consulta para verificar la cantidad de facturas que tiene el cliente
+    SELECT COUNT(noFactura) INTO numFactura FROM facturas WHERE clientes_cedula = cedula;
+    -- Verificando si el cliente tiene facturas
+    IF numFactura > 0 THEN
+    -- Consulta los datos solicitados saldos al dia, saldo mayor a 0, y ordenar de la menor a la mayor fecha
+    -- pendiente
+     SELECT facturas.noFactura AS Factura, saldofactura.vrSaldo AS 'Saldo Factura', 
+     facturas.fechaVencimiento AS 'Fecha Vencimiento', facturas.clientes_cedula AS 'Cedula Cliente' 
+     FROM facturas INNER JOIN saldofactura ON facturas.noFactura = saldofactura.idFactura 
+     WHERE saldofactura.vrSaldo > 0 AND facturas.clientes_cedula = cedula GROUP BY facturas.fechaVencimiento ASC;
+    ELSE 
+        -- en caso de que el cliente no tenga facuturas
+        SELECT * FROM facturas WHERE clientes_cedula = cedula;
+    END IF;
+END $
+-- ------------------------------------------------------------------------------------------------
+-- --------------------------Lista de Pagos de un Cliente-----------------------------------
+-- ------------------------------------------------------------------------------------------------
+-- Creando funcion puesto que los procedimientos y las funciones trabajan 
+-- parecido la diferencia es que las funciones devuelven datos y los procedimientos no
+
+DELIMITER //
+
+CREATE PROCEDURE `proyectofinal`.`usp_Lista_Pagos` (cedula INT)
+BEGIN
+    -- Variable para contar las facturas del cliente
+    DECLARE numPago INT;
+    -- Consulta para verificar la cantidad de facturas que tiene el cliente
+    SELECT COUNT(idPago) INTO numPago FROM pagos WHERE clientes_cedula = cedula;
+    -- Verificando si el cliente tiene facturas
+    IF numFactura > 0 THEN
+     SELECT facturas.noFactura AS Factura, saldofactura.vrSaldo AS 'Saldo Factura', facturas.fechaVencimiento AS 'Fecha Vencimiento', facturas.clientes_cedula AS 'Cedula Cliente' FROM facturas INNER JOIN saldofactura ON facturas.noFactura = saldofactura.idFactura WHERE saldofactura.vrSaldo >0 AND facturas.clientes_cedula = cedula GROUP BY facturas.fechaVencimiento ASC;
+    ELSE 
+        SELECT * FROM facturas WHERE clientes_cedula = cedula;
+    END IF;
+END //
